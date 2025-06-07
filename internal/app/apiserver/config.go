@@ -8,8 +8,9 @@ import (
 )
 
 type Config struct {
-	Env 	 string `yaml:"env" env-default:"local" env-required:"true"`
-	HTTPAddr string `yaml:"httpaddr" env-default:"localhost:8080" env-required:"true"`
+	Env 	 	string `yaml:"env" env-default:"local" env-required:"true"`
+	HTTPAddr 	string `yaml:"httpaddr" env-default:"localhost:8080" env-required:"true"`
+	DatabaseURL string `yaml:"databaseurl" env-required:"true"`
 }
 
 func NewConfig() *Config {
