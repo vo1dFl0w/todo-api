@@ -11,7 +11,7 @@ var (
 	envProd  = "prod"
 )
 
-func (s *server) configureLogger(env string) *slog.Logger {
+func configureLogger(env string) *slog.Logger {
 	var log *slog.Logger
 
 	switch env {
@@ -27,3 +27,4 @@ func (s *server) configureLogger(env string) *slog.Logger {
 
 	return log
 }
+

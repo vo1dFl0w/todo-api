@@ -19,11 +19,11 @@ func Launch(config *Config) error {
 
 	store := dbstore.New(db)
 
-	srv := newServer(store)
+	logger := configureLogger(config.Env)
+	logger.Info("server started", slog.String("env", config.Env))
+	logger.Debug("debug messages are enable")
 
-	srv.log = srv.configureLogger(config.Env)
-
-	srv.log.Info("server started", slog.String("env", config.Env))
+	srv := newServer(store, logger)
 
 	return http.ListenAndServe(config.HTTPAddr, srv)
 }
