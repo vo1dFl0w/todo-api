@@ -1,16 +1,19 @@
 package model
 
 import (
+	"time"
+
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
-	ID 					int 	`json:"id"`
-	Email 				string 	`json:"email"`
-	Password 			string 	`json:"password,omitempty"`
-	EncryptedPassword 	string 	`json:"-"`
+	ID 					 int 	    `json:"id"`
+	Email 				 string 	`json:"email"`
+	Password 			 string 	`json:"password,omitempty"`
+	EncryptedPassword 	 string 	`json:"-"`
+	RefreshTokenExpire   time.Time  `json:"-"`
 }
 
 func (u *User) Validation() error {

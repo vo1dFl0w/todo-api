@@ -2,6 +2,7 @@ package apiserver
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -64,6 +65,7 @@ func (s *server) configureRouter() {
 	s.router.HandleFunc("/hello", s.handleHello())
 	s.router.HandleFunc("/register", s.handleRegister())
 	s.router.HandleFunc("/login", s.handleLogin())
+	s.router.HandleFunc("/refresh", s.handleRefresh())
 
 	private := http.NewServeMux()
 	private.HandleFunc("/whoami", s.userIdentity(s.handleWhoami()))
@@ -189,6 +191,10 @@ func (s *server) handleLogin() http.HandlerFunc{
 		Password 	string `json:"password"`
 	}
 
+	type loginResponse struct {
+		AccessToken string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -209,21 +215,64 @@ func (s *server) handleLogin() http.HandlerFunc{
 			return
 		}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
-			jwt.StandardClaims{
-				ExpiresAt: time.Now().Add(time.Hour * 720).Unix(),
-				IssuedAt: time.Now().Unix(),
-			},
-			u.ID,
-		})
-
-		t, err := token.SignedString(jwtSecretKey)
+		accessToken, err := s.newAccessToken(u.ID)
 		if err != nil {
 			s.error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		s.respond(w, r, http.StatusOK, t)
+		refreshToken, err := s.newRefreshToken()
+		if err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		expiry := time.Now().Add(30 * 24 * time.Hour)
+		err = s.store.User().SaveRefreshToken(u.ID, refreshToken, expiry)
+		if err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		s.respond(w, r, http.StatusOK, loginResponse{
+			AccessToken: accessToken,
+			RefreshToken: refreshToken,
+		})
+	}
+}
+
+func (s *server) handleRefresh() http.HandlerFunc {
+	type request struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req request
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			s.error(w, r, http.StatusBadRequest, err)
+			return
+		}
+
+		u, err := s.store.User().FindByRefreshToken(req.RefreshToken)
+		if err != nil {
+			s.error(w, r, http.StatusUnauthorized, errors.New("invalid refresh token"))
+			return
+		}
+
+		if time.Now().After(u.RefreshTokenExpire) {
+			s.error(w, r, http.StatusUnauthorized, errors.New("refresh token expired"))
+			return
+		}
+
+		newAccessToken, err := s.newAccessToken(u.ID)
+		if err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		s.respond(w, r, http.StatusOK, map[string]string{
+			"access_token": newAccessToken,
+		})
 	}
 }
 
@@ -236,6 +285,29 @@ func (s *server) handleWhoami() http.HandlerFunc {
 
 		s.respond(w, r, http.StatusOK, r.Context().Value(ctxKeyUser).(*model.User))
 	}
+}
+
+func (s *server) newAccessToken(id int) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Minute * 15).Unix(),
+			IssuedAt: time.Now().Unix(),
+		},
+		UserId: id,
+	})
+	
+	return token.SignedString(jwtSecretKey)
+}
+
+func (s *server) newRefreshToken() (string, error) {
+	b := make([]byte, 32)
+
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", b), nil
 }
 
 func (s *server) error(w http.ResponseWriter, r *http.Request, code int, err error) {

@@ -2,6 +2,7 @@ package dbstore
 
 import (
 	"errors"
+	"time"
 
 	"github.com/lib/pq"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/model"
@@ -59,6 +60,34 @@ func (r *UserReposiotry) FindByEmail(email string) (*model.User, error) {
 		"SELECT id, email, encrypted_password FROM users WHERE email = $1",
 		email,
 	).Scan(&u.ID, &u.Email, &u.EncryptedPassword); err != nil{
+		return nil, err
+	}
+
+	return u, nil
+}
+
+func (r *UserReposiotry) SaveRefreshToken(id int, token string, expiry time.Time) error {
+	_, err := r.store.db.Exec(
+		"UPDATE users SET refresh_token = $1, refresh_token_exp = $2 WHERE id = $3",
+		token,
+		expiry,
+		id,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *UserReposiotry) FindByRefreshToken(token string) (*model.User, error) {
+	u := &model.User{}
+
+	if err := r.store.db.QueryRow(
+		"SELECT id FROM users WHERE refresh_token = $1",
+		token,
+	).Scan(&u.ID); err != nil {
 		return nil, err
 	}
 
