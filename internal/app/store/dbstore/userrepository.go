@@ -6,6 +6,7 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/model"
+	"github.com/vo1dFl0w/taskmanager-api/internal/app/store"
 )
 
 type UserReposiotry struct {
@@ -47,7 +48,7 @@ func (r *UserReposiotry) Find(id int) (*model.User, error) {
 		&u.ID,
 		&u.Email,&u.EncryptedPassword,
 	); err != nil {
-		return nil, err
+		return nil, store.ErrRecordNotFound
 	}
 	
 	return u, nil
@@ -60,7 +61,7 @@ func (r *UserReposiotry) FindByEmail(email string) (*model.User, error) {
 		"SELECT id, email, encrypted_password FROM users WHERE email = $1",
 		email,
 	).Scan(&u.ID, &u.Email, &u.EncryptedPassword); err != nil{
-		return nil, err
+		return nil, store.ErrRecordNotFound
 	}
 
 	return u, nil
@@ -88,7 +89,7 @@ func (r *UserReposiotry) FindByRefreshToken(token string) (*model.User, error) {
 		"SELECT id FROM users WHERE refresh_token = $1",
 		token,
 	).Scan(&u.ID); err != nil {
-		return nil, err
+		return nil, store.ErrRecordNotFound
 	}
 
 	return u, nil

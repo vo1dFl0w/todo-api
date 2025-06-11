@@ -13,6 +13,7 @@ type User struct {
 	Email 				 string 	`json:"email"`
 	Password 			 string 	`json:"password,omitempty"`
 	EncryptedPassword 	 string 	`json:"-"`
+	RefreshToken         string		`json:"-"`
 	RefreshTokenExpire   time.Time  `json:"-"`
 }
 
