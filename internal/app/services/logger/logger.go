@@ -1,4 +1,4 @@
-package apiserver
+package logger
 
 import (
 	"log/slog"
@@ -11,7 +11,7 @@ var (
 	envProd  = "prod"
 )
 
-func configureLogger(env string) *slog.Logger {
+func ConfigureLogger(env string) *slog.Logger {
 	var log *slog.Logger
 
 	switch env {
@@ -27,4 +27,3 @@ func configureLogger(env string) *slog.Logger {
 
 	return log
 }
-

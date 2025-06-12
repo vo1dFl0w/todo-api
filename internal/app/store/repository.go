@@ -8,8 +8,8 @@ import (
 
 type UserRepository interface{
 	Create(u *model.User) error
-	Find(id int) (*model.User, error)
+	FindByID(id int) (*model.User, error)
 	FindByEmail(email string) (*model.User, error)
 	SaveRefreshToken(id int, token string, expiry time.Time) error
-	FindByRefreshToken(token string) (*model.User, error)
+	GetRefreshTokenExpire(token string) (*model.User, error)
 }

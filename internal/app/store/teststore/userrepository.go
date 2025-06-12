@@ -37,7 +37,7 @@ func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 	return nil, store.ErrRecordNotFound
 }
 
-func (r *UserRepository) Find(id int) (*model.User, error) {
+func (r *UserRepository) FindByID(id int) (*model.User, error) {
 	u, ok := r.users[id]
 	if !ok {
 		return nil, store.ErrRecordNotFound
@@ -46,7 +46,7 @@ func (r *UserRepository) Find(id int) (*model.User, error) {
 	return u, nil
 }
 
-func (r *UserRepository) FindByRefreshToken(token string) (*model.User, error) {
+func (r *UserRepository) GetRefreshTokenExpire(token string) (*model.User, error) {
 	for _, u := range r.users {
 		if u.RefreshToken == token {
 			return u, nil

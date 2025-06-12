@@ -9,16 +9,19 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vo1dFl0w/taskmanager-api/internal/app/middleware"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/model"
+	"github.com/vo1dFl0w/taskmanager-api/internal/app/services/logger"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/store/teststore"
 )
 
-func TestServer_UserIdentity(t *testing.T) {
-	s := newServer(teststore.New(), configureLogger("local"))
+func TestServer_AuthMiddleware(t *testing.T) {
+	cfg := NewConfig()
+	s := newServer(teststore.New(), logger.ConfigureLogger(cfg.Env), cfg)
 	u := model.TestUser(t)
 	_ = s.store.User().Create(u)
 
-	token, _ := s.newAccessToken(u.ID)
+	token, _ := s.tokenService.GenerateAccessToken(u.ID)
 
 	testCases := []struct{
 		name 		 string
@@ -42,6 +45,7 @@ func TestServer_UserIdentity(t *testing.T) {
 		},
 	}
 
+	secret := []byte(s.config.JWTSecret)
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "Hello, World!")
 	})
@@ -54,7 +58,7 @@ func TestServer_UserIdentity(t *testing.T) {
 				req.Header.Set("Authorization", tc.authHeader)
 			}
 
-			s.userIdentity(handler).ServeHTTP(rec, req)
+			middleware.AuthMiddleware(secret, s.store)(handler).ServeHTTP(rec, req)
 
 			assert.Equal(t, tc.expectedCode, rec.Code)
 		})
@@ -62,7 +66,8 @@ func TestServer_UserIdentity(t *testing.T) {
 }
 
 func TestServer_HandleRegister(t *testing.T) {
-	s := newServer(teststore.New(), configureLogger("local"))
+	cfg := NewConfig()
+	s := newServer(teststore.New(), logger.ConfigureLogger(cfg.Env), cfg)
 
 	testCases := []struct{
 		name 		 string
@@ -105,7 +110,8 @@ func TestServer_HandleRegister(t *testing.T) {
 }
 
 func TestServer_HandleLogin(t *testing.T) {
-	s := newServer(teststore.New(), configureLogger("local"))
+	cfg := NewConfig()
+	s := newServer(teststore.New(), logger.ConfigureLogger(cfg.Env), cfg)
 	u := model.TestUser(t)
 	s.store.User().Create(u)
 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	_ "github.com/lib/pq"
+	"github.com/vo1dFl0w/taskmanager-api/internal/app/services/logger"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/store/dbstore"
 )
 
@@ -19,11 +20,12 @@ func Launch(config *Config) error {
 
 	store := dbstore.New(db)
 
-	logger := configureLogger(config.Env)
+	logger := logger.ConfigureLogger(config.Env)
 	logger.Info("server started", slog.String("env", config.Env))
 	logger.Debug("debug messages are enable")
 
-	srv := newServer(store, logger)
+	cfg := NewConfig()
+	srv := newServer(store, logger, cfg)
 
 	return http.ListenAndServe(config.HTTPAddr, srv)
 }

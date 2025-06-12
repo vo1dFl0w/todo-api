@@ -8,7 +8,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/vo1dFl0w/taskmanager-api/internal/app/middleware"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/model"
+	"github.com/vo1dFl0w/taskmanager-api/internal/app/services"
+	"github.com/vo1dFl0w/taskmanager-api/internal/app/services/auth"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/store"
 )
 
@@ -23,19 +26,17 @@ type server struct {
 	router 		*http.ServeMux
 	middleware 	http.Handler
 	log         *slog.Logger
+	config      *Config
+	tokenService services.TokenService
 }
 
-const (
-	ctxKeyUser ctxKey = iota
-)
-
-type ctxKey uint8
-
-func newServer(store store.Store, logger *slog.Logger) *server {
+func newServer(store store.Store, logger *slog.Logger, cfg *Config) *server {
 	s := &server{
 		store: store,
 		router: http.NewServeMux(),
 		log: logger,
+		config: cfg,
+		tokenService: auth.NewTokenService([]byte(cfg.JWTSecret)),
 	}
 
 	s.configureRouter()
@@ -48,16 +49,26 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) configureRouter() {
-	s.middleware = s.loggerMiddleware(s.router)
+	secret := []byte(s.config.JWTSecret)
 
+	// registering regular routes
 	s.router.HandleFunc("/hello", s.handleHello())
 	s.router.HandleFunc("/register", s.handleRegister())
 	s.router.HandleFunc("/login", s.handleLogin())
 	s.router.HandleFunc("/refresh", s.handleRefresh())
 
+	// registering private routes
 	private := http.NewServeMux()
-	private.HandleFunc("/whoami", s.userIdentity(s.handleWhoami()))
+	private.Handle("/whoami", middleware.Compose(middleware.AuthMiddleware(secret, s.store))(s.handleWhoami()))
 	s.router.Handle("/private/", http.StripPrefix("/private", private))
+
+	// wrapping routes to middleware
+	s.middleware = middleware.Compose(
+		middleware.LoggerMiddleware(s.log),
+		middleware.CorsMiddleware(),
+	)(s.router)
+
+
 }
 
 func (s *server) handleHello() http.HandlerFunc {
@@ -133,13 +144,13 @@ func (s *server) handleLogin() http.HandlerFunc{
 			return
 		}
 
-		accessToken, err := s.newAccessToken(u.ID)
+		accessToken, err := s.tokenService.GenerateAccessToken(u.ID)
 		if err != nil {
 			s.error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		refreshToken, err := s.newRefreshToken()
+		refreshToken, err := s.tokenService.GenerateRefreshToken()
 		if err != nil {
 			s.error(w, r, http.StatusInternalServerError, err)
 			return
@@ -171,7 +182,7 @@ func (s *server) handleRefresh() http.HandlerFunc {
 			return
 		}
 
-		u, err := s.store.User().FindByRefreshToken(req.RefreshToken)
+		u, err := s.store.User().GetRefreshTokenExpire(req.RefreshToken)
 		if err != nil {
 			s.error(w, r, http.StatusUnauthorized, errors.New("invalid refresh token"))
 			return
@@ -182,7 +193,7 @@ func (s *server) handleRefresh() http.HandlerFunc {
 			return
 		}
 
-		newAccessToken, err := s.newAccessToken(u.ID)
+		newAccessToken, err := s.tokenService.GenerateAccessToken(u.ID)
 		if err != nil {
 			s.error(w, r, http.StatusInternalServerError, err)
 			return
@@ -194,15 +205,15 @@ func (s *server) handleRefresh() http.HandlerFunc {
 	}
 }
 
-func (s *server) handleWhoami() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (s *server) handleWhoami() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			s.error(w, r, http.StatusMethodNotAllowed, errMethodNotAllowed)
 			return
 		}
 
-		s.respond(w, r, http.StatusOK, r.Context().Value(ctxKeyUser).(*model.User))
-	}
+		s.respond(w, r, http.StatusOK, r.Context().Value(middleware.CtxKeyUser).(*model.User))
+	})
 }
 
 func (s *server) error(w http.ResponseWriter, r *http.Request, code int, err error) {

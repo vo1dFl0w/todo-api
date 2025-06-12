@@ -38,15 +38,18 @@ func (r *UserReposiotry) Create(u *model.User) error {
 	return nil
 }
 
-func (r *UserReposiotry) Find(id int) (*model.User, error) {
+func (r *UserReposiotry) FindByID(id int) (*model.User, error) {
 	u := &model.User{}
 
 	if err := r.store.db.QueryRow(
-		"SELECT id, email, encrypted_password FROM users WHERE id = $1",
+		"SELECT id, email, encrypted_password, refresh_token, refresh_token_exp FROM users WHERE id = $1",
 		id,
 	).Scan(
 		&u.ID,
-		&u.Email,&u.EncryptedPassword,
+		&u.Email,
+		&u.EncryptedPassword,
+		&u.RefreshToken,
+		&u.RefreshTokenExpire,
 	); err != nil {
 		return nil, store.ErrRecordNotFound
 	}
@@ -82,13 +85,13 @@ func (r *UserReposiotry) SaveRefreshToken(id int, token string, expiry time.Time
 	return nil
 }
 
-func (r *UserReposiotry) FindByRefreshToken(token string) (*model.User, error) {
+func (r *UserReposiotry) GetRefreshTokenExpire(token string) (*model.User, error) {
 	u := &model.User{}
 
 	if err := r.store.db.QueryRow(
-		"SELECT id FROM users WHERE refresh_token = $1",
+		"SELECT id, refresh_token_exp FROM users WHERE refresh_token = $1",
 		token,
-	).Scan(&u.ID); err != nil {
+	).Scan(&u.ID, &u.RefreshTokenExpire); err != nil {
 		return nil, store.ErrRecordNotFound
 	}
 
