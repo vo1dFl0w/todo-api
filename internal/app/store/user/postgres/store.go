@@ -1,10 +1,10 @@
-package dbstore
+package postgres
 
 import (
 	"database/sql"
 
 	_ "github.com/lib/pq"
-	"github.com/vo1dFl0w/taskmanager-api/internal/app/store"
+	"github.com/vo1dFl0w/taskmanager-api/internal/app/store/user"
 )
 
 type Store struct {
@@ -18,7 +18,7 @@ func New(db *sql.DB) *Store {
 	}
 }
 
-func (s *Store) User() store.UserRepository {
+func (s *Store) User() user.UserRepository {
 	if s.userReposiotry != nil {
 		return s.userReposiotry
 	}

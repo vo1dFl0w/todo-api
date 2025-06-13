@@ -1,4 +1,4 @@
-package teststore
+package teststore_user
 
 import (
 	"time"
@@ -21,8 +21,8 @@ func (r *UserRepository) Create(u *model.User) error {
 		return err
 	}
 
+	u.ID = len(r.users) + 1
 	r.users[u.ID] = u
-	u.ID = len(r.users)
 		
 	return nil
 }
@@ -57,10 +57,13 @@ func (r *UserRepository) GetRefreshTokenExpire(token string) (*model.User, error
 }
 
 func (r *UserRepository) SaveRefreshToken(id int, token string, expiry time.Time) error {
-	r.users[id] = &model.User{
-		RefreshToken: token,
-		RefreshTokenExpire: expiry,
+	u, ok := r.users[id]
+	if !ok {
+		return store.ErrRecordNotFound
 	}
-	
+
+	u.RefreshToken = token
+	u.RefreshTokenExpire = expiry
+
 	return nil
 }

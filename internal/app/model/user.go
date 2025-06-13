@@ -38,10 +38,6 @@ func (u *User) BeforeCreate() error {
 	return nil
 }
 
-func (u *User) Sanitize() {
-	u.Password = ""
-}
-
 func (u *User) ComparePassword(password string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(u.EncryptedPassword), []byte(password)) == nil
 }
@@ -53,4 +49,14 @@ func encyptString(password string) (string, error) {
 	}
 
 	return string(b), nil
+}
+
+func requiredIf(cond bool) validation.RuleFunc {
+	return func(value interface{}) error {
+		if cond {
+			return validation.Validate(value, validation.Required)
+		}
+
+		return nil
+	}
 }

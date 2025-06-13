@@ -1,36 +1,70 @@
 package apiserver
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	_ "github.com/lib/pq"
-	"github.com/vo1dFl0w/taskmanager-api/internal/app/services/logger"
-	"github.com/vo1dFl0w/taskmanager-api/internal/app/store/dbstore"
+	"github.com/vo1dFl0w/taskmanager-api/internal/app/apiserver/config"
+	"github.com/vo1dFl0w/taskmanager-api/internal/app/store/user/postgres"
 )
 
-func Launch(config *Config) error {
-	db, err := newDB(config.DatabaseURL)
+func Run(config *config.Config, logger *slog.Logger) error {
+	db, err := initDB(config.DatabaseURL)
 	if err != nil {
 		return err
 	}
 
 	defer db.Close()
 
-	store := dbstore.New(db)
+	store := postgres.New(db)
 
-	logger := logger.ConfigureLogger(config.Env)
+	router := newServer(store, logger, config)
+
+	
+	s := &http.Server{
+		Addr: config.HTTPAddr,
+		Handler: router,
+		ReadTimeout: 10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout: 120 * time.Second,
+	}
+	
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	go func()  {
+		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("failed to start server", slog.String("error", err.Error()))
+		}
+	}()
+
 	logger.Info("server started", slog.String("env", config.Env))
 	logger.Debug("debug messages are enable")
 
-	cfg := NewConfig()
-	srv := newServer(store, logger, cfg)
+	<-done
+	logger.Info("stopping server")
 
-	return http.ListenAndServe(config.HTTPAddr, srv)
+	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	defer cancel()
+
+	if err := s.Shutdown(ctx); err != nil {
+		logger.Error(fmt.Sprintf("failed to stop server: %s", err))
+	}
+
+	logger.Info("server stopped")
+
+	return nil
 }
 
-func newDB(databaseURL string) (*sql.DB, error) {
+func initDB(databaseURL string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", databaseURL)
 	if err != nil {
 		return nil, err

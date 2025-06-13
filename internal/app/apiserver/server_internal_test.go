@@ -9,15 +9,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vo1dFl0w/taskmanager-api/internal/app/apiserver/config"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/middleware"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/model"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/services/logger"
-	"github.com/vo1dFl0w/taskmanager-api/internal/app/store/teststore"
+	teststore_user "github.com/vo1dFl0w/taskmanager-api/internal/app/store/teststore/user"
 )
 
 func TestServer_AuthMiddleware(t *testing.T) {
-	cfg := NewConfig()
-	s := newServer(teststore.New(), logger.ConfigureLogger(cfg.Env), cfg)
+	cfg := config.InitConfig()
+	s := newServer(teststore_user.New(), logger.InitLogger(cfg.Env), cfg)
 	u := model.TestUser(t)
 	_ = s.store.User().Create(u)
 
@@ -66,8 +67,8 @@ func TestServer_AuthMiddleware(t *testing.T) {
 }
 
 func TestServer_HandleRegister(t *testing.T) {
-	cfg := NewConfig()
-	s := newServer(teststore.New(), logger.ConfigureLogger(cfg.Env), cfg)
+	cfg := config.InitConfig()
+	s := newServer(teststore_user.New(), logger.InitLogger(cfg.Env), cfg)
 
 	testCases := []struct{
 		name 		 string
@@ -110,8 +111,8 @@ func TestServer_HandleRegister(t *testing.T) {
 }
 
 func TestServer_HandleLogin(t *testing.T) {
-	cfg := NewConfig()
-	s := newServer(teststore.New(), logger.ConfigureLogger(cfg.Env), cfg)
+	cfg := config.InitConfig()
+	s := newServer(teststore_user.New(), logger.InitLogger(cfg.Env), cfg)
 	u := model.TestUser(t)
 	s.store.User().Create(u)
 

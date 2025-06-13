@@ -1,4 +1,4 @@
-package dbstore
+package postgres
 
 import (
 	"errors"

@@ -1,4 +1,4 @@
-package dbstore_test
+package postgres_test
 
 import (
 	"os"

@@ -1,8 +1,8 @@
-package teststore
+package teststore_user
 
 import (
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/model"
-	"github.com/vo1dFl0w/taskmanager-api/internal/app/store"
+	"github.com/vo1dFl0w/taskmanager-api/internal/app/store/user"
 )
 
 type Store struct {
@@ -13,7 +13,7 @@ func New() *Store {
 	return &Store{}
 }
 
-func (s *Store) User() store.UserRepository {
+func (s *Store) User() user.UserRepository {
 	if s.userRepository != nil {
 		return s.userRepository
 	}

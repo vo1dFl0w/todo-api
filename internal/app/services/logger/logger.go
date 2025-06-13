@@ -11,7 +11,7 @@ var (
 	envProd  = "prod"
 )
 
-func ConfigureLogger(env string) *slog.Logger {
+func InitLogger(env string) *slog.Logger {
 	var log *slog.Logger
 
 	switch env {

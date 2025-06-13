@@ -1,4 +1,4 @@
-package teststore_test
+package teststore_user_test
 
 import (
 	"testing"
@@ -6,12 +6,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/model"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/store"
-
-	"github.com/vo1dFl0w/taskmanager-api/internal/app/store/teststore"
+	teststore_user "github.com/vo1dFl0w/taskmanager-api/internal/app/store/teststore/user"
 )
 
 func TestUserRepository_Create(t *testing.T) {
-	s := teststore.New()
+	s := teststore_user.New()
 
 	u1 := &model.User{}
 	err := s.User().Create(u1)
@@ -25,7 +24,7 @@ func TestUserRepository_Create(t *testing.T) {
 }
 
 func TestUserRepository_FindByEmail(t *testing.T) {
-	s := teststore.New()
+	s := teststore_user.New()
 	email := "user@example.org"
 
 	_, err := s.User().FindByEmail(email)
