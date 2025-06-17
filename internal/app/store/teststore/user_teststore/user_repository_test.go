@@ -1,4 +1,4 @@
-package postgres_test
+package user_teststore_test
 
 import (
 	"testing"
@@ -6,27 +6,25 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/model"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/store"
-	"github.com/vo1dFl0w/taskmanager-api/internal/app/store/user/postgres"
+	"github.com/vo1dFl0w/taskmanager-api/internal/app/store/teststore"
 )
 
 func TestUserRepository_Create(t *testing.T) {
-	db, teardown := postgres.TestDB(t, databaseURL)
-	defer teardown("users")
+	s := teststore.New()
 
-	s := postgres.New(db)
-	u := model.TestUser(t)
+	u1 := &model.User{}
+	err := s.User().Create(u1)
 
-	err := s.User().Create(u)
+	assert.Error(t, err)
+
+	u2 := model.TestUser(t)
+	err = s.User().Create(u2)
 
 	assert.NoError(t, err)
-	assert.NotNil(t, u)
 }
 
 func TestUserRepository_FindByEmail(t *testing.T) {
-	db, teardown := postgres.TestDB(t, databaseURL)
-	defer teardown("users")
-
-	s := postgres.New(db)
+	s := teststore.New()
 	email := "user@example.org"
 
 	_, err := s.User().FindByEmail(email)

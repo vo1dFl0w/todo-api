@@ -1,4 +1,4 @@
-package teststore_user
+package user_teststore
 
 import (
 	"time"
@@ -8,8 +8,8 @@ import (
 )
 
 type UserRepository struct {
-	store *Store
-	users map[int]*model.User
+	Store *store.Store
+	Users map[int]*model.User
 }
 
 func (r *UserRepository) Create(u *model.User) error {
@@ -21,14 +21,14 @@ func (r *UserRepository) Create(u *model.User) error {
 		return err
 	}
 
-	u.ID = len(r.users) + 1
-	r.users[u.ID] = u
+	u.ID = len(r.Users) + 1
+	r.Users[u.ID] = u
 		
 	return nil
 }
 
 func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
-	for _, u := range r.users {
+	for _, u := range r.Users {
 		if u.Email == email {
 			return u, nil
 		}
@@ -38,7 +38,7 @@ func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 }
 
 func (r *UserRepository) FindByID(id int) (*model.User, error) {
-	u, ok := r.users[id]
+	u, ok := r.Users[id]
 	if !ok {
 		return nil, store.ErrRecordNotFound
 	}
@@ -47,7 +47,7 @@ func (r *UserRepository) FindByID(id int) (*model.User, error) {
 }
 
 func (r *UserRepository) GetRefreshTokenExpire(token string) (*model.User, error) {
-	for _, u := range r.users {
+	for _, u := range r.Users {
 		if u.RefreshToken == token {
 			return u, nil
 		}
@@ -57,7 +57,7 @@ func (r *UserRepository) GetRefreshTokenExpire(token string) (*model.User, error
 }
 
 func (r *UserRepository) SaveRefreshToken(id int, token string, expiry time.Time) error {
-	u, ok := r.users[id]
+	u, ok := r.Users[id]
 	if !ok {
 		return store.ErrRecordNotFound
 	}

@@ -13,7 +13,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/apiserver/config"
-	"github.com/vo1dFl0w/taskmanager-api/internal/app/store/user/postgres"
+	"github.com/vo1dFl0w/taskmanager-api/internal/app/store/repository"
 )
 
 func Run(config *config.Config, logger *slog.Logger) error {
@@ -24,7 +24,7 @@ func Run(config *config.Config, logger *slog.Logger) error {
 
 	defer db.Close()
 
-	store := postgres.New(db)
+	store := repository.New(db)
 
 	router := newServer(store, logger, config)
 

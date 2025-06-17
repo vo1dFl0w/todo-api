@@ -1,6 +1,7 @@
-package postgres
+package user_postgres
 
 import (
+	"database/sql"
 	"errors"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 )
 
 type UserReposiotry struct {
-	store *Store
+	DB *sql.DB
 }
 
 func (r *UserReposiotry) Create(u *model.User) error {
@@ -22,7 +23,7 @@ func (r *UserReposiotry) Create(u *model.User) error {
 		return err
 	}
 
-	err := r.store.db.QueryRow(
+	err := r.DB.QueryRow(
 		"INSERT INTO users (email, encrypted_password) VALUES ($1, $2) RETURNING id",
 		u.Email,
 		u.EncryptedPassword,
@@ -41,7 +42,7 @@ func (r *UserReposiotry) Create(u *model.User) error {
 func (r *UserReposiotry) FindByID(id int) (*model.User, error) {
 	u := &model.User{}
 
-	if err := r.store.db.QueryRow(
+	if err := r.DB.QueryRow(
 		"SELECT id, email, encrypted_password, refresh_token, refresh_token_exp FROM users WHERE id = $1",
 		id,
 	).Scan(
@@ -60,7 +61,7 @@ func (r *UserReposiotry) FindByID(id int) (*model.User, error) {
 func (r *UserReposiotry) FindByEmail(email string) (*model.User, error) {
 	u := &model.User{}
 
-	if err := r.store.db.QueryRow(
+	if err := r.DB.QueryRow(
 		"SELECT id, email, encrypted_password FROM users WHERE email = $1",
 		email,
 	).Scan(&u.ID, &u.Email, &u.EncryptedPassword); err != nil{
@@ -71,7 +72,7 @@ func (r *UserReposiotry) FindByEmail(email string) (*model.User, error) {
 }
 
 func (r *UserReposiotry) SaveRefreshToken(id int, token string, expiry time.Time) error {
-	_, err := r.store.db.Exec(
+	_, err := r.DB.Exec(
 		"UPDATE users SET refresh_token = $1, refresh_token_exp = $2 WHERE id = $3",
 		token,
 		expiry,
@@ -88,7 +89,7 @@ func (r *UserReposiotry) SaveRefreshToken(id int, token string, expiry time.Time
 func (r *UserReposiotry) GetRefreshTokenExpire(token string) (*model.User, error) {
 	u := &model.User{}
 
-	if err := r.store.db.QueryRow(
+	if err := r.DB.QueryRow(
 		"SELECT id, refresh_token_exp FROM users WHERE refresh_token = $1",
 		token,
 	).Scan(&u.ID, &u.RefreshTokenExpire); err != nil {
