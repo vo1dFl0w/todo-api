@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/apiserver/config"
 	"github.com/vo1dFl0w/taskmanager-api/internal/app/apiserver/handlers"
@@ -56,17 +58,86 @@ func (s *Server) configureRouter() {
 		Error: s.error,
 	}
 
+	taskHandler := &handlers.TaskHandler{
+		Store: s.store,
+		TokenService: s.tokenService,
+		Respond: s.respond,
+		Error: s.error,
+	}
+
 	secret := []byte(s.config.JWTSecret)
 
-	// registering regular routes
+	// registration of authorization routs
 	s.router.HandleFunc("/register", authHandler.Register())
 	s.router.HandleFunc("/login", authHandler.Login())
 	s.router.HandleFunc("/refresh", authHandler.Refresh())
 
-	// registering private routes
+	// registration of private test routs
 	private := http.NewServeMux()
 	private.Handle("/whoami", middleware.Compose(middleware.AuthMiddleware(secret, s.store))(authHandler.Whoami()))
 	s.router.Handle("/private/", http.StripPrefix("/private", private))
+
+	// registration of task (todo) routs
+	s.router.Handle("/user/", middleware.Compose(middleware.AuthMiddleware(secret, s.store))(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			path := strings.Trim(r.URL.Path, "/")
+			parts := strings.FieldsFunc(path, func(r rune) bool {
+				return r == '/' || r == '?' || r == '=' || r == '&'
+			})
+			
+			// expect /user/{user_id}/task
+			if len(parts) == 3 && parts[0] == "user" && parts[2] == "task" {
+				userID, err := strconv.Atoi(parts[1])
+				if err != nil {
+					s.error(w, r, http.StatusBadRequest, errors.New("invalid user_id"))
+					return
+				}
+
+				switch r.Method {
+				case http.MethodGet:
+					taskHandler.GetTask(userID)(w, r)
+				case http.MethodPost:
+					taskHandler.CreateTask(userID)(w, r)
+				case http.MethodDelete:
+					query := r.URL.Query()["ids"]
+					var taskIDs []int
+					for _, idStr := range query {
+						id, err := strconv.Atoi(idStr)
+						if err != nil {
+							s.error(w, r, http.StatusBadRequest, err)
+							return
+						}
+						taskIDs = append(taskIDs, id)
+					}
+					taskHandler.DeleteTask(userID, taskIDs)(w, r)
+				default:
+					s.error(w, r, http.StatusMethodNotAllowed, errMethodNotAllowed)
+				}
+				return
+			}
+			
+			// expect /user/{user_id}/task/{task_id} or /user/{user_id}/task?ids=1&ids=2
+			if len(parts) == 4 && parts[0] == "user" && parts[2] == "task" {
+				userID, err1 := strconv.Atoi(parts[1])
+				taskID, err2 := strconv.Atoi(parts[3])
+				if err1 != nil || err2 != nil {
+					s.error(w, r, http.StatusBadRequest, errors.New("invalid user_id or task_id"))
+					return
+				}
+
+				switch r.Method {
+				case http.MethodPatch:
+					taskHandler.UpdateTask(userID, taskID)(w, r)
+				default:
+					s.error(w, r, http.StatusMethodNotAllowed, errMethodNotAllowed)
+				}
+				return
+			}
+
+
+			http.NotFound(w, r)
+		}),
+	))
 
 	// wrapping routes to middleware
 	s.middleware = middleware.Compose(
