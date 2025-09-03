@@ -170,8 +170,6 @@ func (h *TaskHandler) DeleteTask(userID int, taskIDs []int) http.HandlerFunc {
 			return
 		}
 
-		
-
 		count, err := h.Store.Todo().Delete(userID, taskIDs)
 		if err != nil {
 			h.Error(w, r, http.StatusUnprocessableEntity, err)

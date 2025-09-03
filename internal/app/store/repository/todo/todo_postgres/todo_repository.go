@@ -109,10 +109,12 @@ func (r *TodoRepository) Delete(userID int, taskIDs []int) (int64, error) {
 	if len(taskIDs) == 0 {
 		return 0, nil
 	}
-
-	query := `DELETE FROM tasks WHERE user_id = $1 AND task_id = ANY($2)`
 	
-	res, err := r.DB.Exec(query, userID, pq.Array(taskIDs))
+	res, err := r.DB.Exec(
+		"DELETE FROM tasks WHERE user_id = $1 AND task_id = ANY($2)",
+		userID,
+		pq.Array(taskIDs),
+	)
 	if err != nil {
 		return 0, err
 	}

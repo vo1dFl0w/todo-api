@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  todo-app:
+      build: ./
+      ports:
+        - "8080:8080"
+      volumes:
+        - ./config/:/var/lib/todo-app
+      environment:
+        - CONFIG_PATH=config/config.yml
+      depends_on:
+        - db
+
+  db:
+    restart: always
+    image: postgres:14
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=todo-api-db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:

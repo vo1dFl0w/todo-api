@@ -1,0 +1,6 @@
+env: "local"
+
+httpaddr: ":8080"
+jwt_secret: "your_secret_key"
+
+databaseurl: "host=db port=5432 dbname=todo-api-db user=your_db_username password=your_password sslmode=disable"
