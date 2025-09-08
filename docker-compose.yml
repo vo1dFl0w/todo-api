@@ -1,26 +1,40 @@
-version: '3.8'
-
+---
 services:
-  todo-app:
+  app:
       build: ./
+      container_name: ps-app
       ports:
         - "8080:8080"
       volumes:
-        - ./config/:/var/lib/todo-app
+        - ./config:/var/lib/todo-app
       environment:
-        - CONFIG_PATH=config/config.yml
+        - CONFIG_PATH=/todo-api/config/config.yml
       depends_on:
         - db
+      networks:
+        - frontend
+        - backend
 
   db:
     restart: always
-    image: postgres:14
+    image: postgres:14-alpine
+    container_name: ps-db
     ports:
       - "5433:5432"
     environment:
       - POSTGRES_DB=todo-api-db
     volumes:
       - db_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+networks:
+  frontend:
+    name: frontend
+    driver: bridge
+  backend:
+    name: backend
+    driver: bridge
 
 volumes:
   db_data:

@@ -158,5 +158,3 @@ func (s *Server) respond(w http.ResponseWriter, r *http.Request, code int, data 
 		json.NewEncoder(w).Encode(data)
 	}
 }
-
-

@@ -1,6 +1,0 @@
-env: "local"
-
-httpaddr: "localhost:8080"
-jwt_secret: ""
-
-databaseurl: "host=localhost dbname=todo-api-db port=5432 sslmode=disable"

@@ -40,7 +40,7 @@ func LoggerMiddleware(log *slog.Logger) func(http.Handler) http.Handler {
 			log.Info(
 				"completed",
 				slog.Int("code", rw.code),
-				slog.String("level", level.String()),
+				slog.Any(slog.LevelKey, level),
 				slog.String("status-text", http.StatusText(rw.code)),
 				slog.String("time", complitedStr),
 			)

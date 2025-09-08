@@ -76,5 +76,3 @@ func initDB(databaseURL string) (*sql.DB, error) {
 
 	return db, nil
 }
-
-
